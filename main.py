@@ -4,46 +4,82 @@ from math import ceil
 from multiprocessing import Pool, cpu_count
 from download_dataset import download_invoices
 import sys
+import time
+import logging
+from logging.handlers import RotatingFileHandler
+import multiprocessing
+from datetime import datetime
 
 PDF_FOLDER = Path("./invoices")
 
+# =============================
+# CONFIGURAÇÃO DE LOG
+# =============================
 
-# ----------------------------
-# Funções de ingestão (paralelo)
-# ----------------------------
+LOG_FILE = "ingestion.log"
+
+handler = RotatingFileHandler(
+    LOG_FILE,
+    maxBytes=5_000_000,
+    backupCount=5,
+    encoding="utf-8"
+)
+
+formatter = logging.Formatter(
+    "%(asctime)s | %(levelname)s | PID:%(process)d | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+handler.setFormatter(formatter)
+
+logger = logging.getLogger("ingestion")
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
+
+# =============================
+# FUNÇÕES DE INGESTÃO (PARALELO)
+# =============================
+
 def process_batch(pdf_paths):
     from extractor import InvoiceExtractor
 
     extractor = InvoiceExtractor()
     invoices = []
     errors = []
+
     for pdf_path in pdf_paths:
         try:
             invoice = extractor.extract_from_pdf(pdf_path)
             invoices.append(invoice)
-        except Exception as e:
-            errors.append(f"{pdf_path.name}: {e}")
+
+        except Exception:
+            error_msg = f"{pdf_path.name}"
+            errors.append(error_msg)
+
     return invoices, errors
 
 
 def run_ingestion_parallel():
+    logger.info("Ingestão paralela iniciada")
+
     repo = InvoiceRepository()
-    pdf_files = list(Path(PDF_FOLDER).glob("*.pdf"))
+    pdf_files = list(PDF_FOLDER.glob("*.pdf"))
 
     if not pdf_files:
         print("Nenhum PDF encontrado na pasta.")
+        logger.warning("Nenhum PDF encontrado para ingestão")
         return
 
     success = 0
-    errors = []
+    errors = 0
 
-    n_processes = cpu_count()
+    n_processes = max(1, cpu_count())
     batch_size = ceil(len(pdf_files) / n_processes)
-    batches = [
-        pdf_files[i : i + batch_size] for i in range(0, len(pdf_files), batch_size)
-    ]
 
-    from multiprocessing import Pool
+    batches = [
+        pdf_files[i:i + batch_size]
+        for i in range(0, len(pdf_files), batch_size)
+    ]
 
     with Pool(processes=n_processes) as pool:
         results = pool.map(process_batch, batches)
@@ -52,54 +88,71 @@ def run_ingestion_parallel():
         for invoice in invoices:
             repo.add_invoice(invoice)
             success += 1
+
+        errors += len(errs)
+
         for err in errs:
-            errors.append(err)
-            print(f"Erro: {err}")
+            logger.exception(f"Erro ao processar: {err}")
 
     repo.flush()
+
     print(f"\n✔ Ingestão finalizada: {success} arquivos processados")
+
     if errors:
-        print(f"⚠ {len(errors)} PDFs não processados devido a erros.\n")
+        print(f"⚠ {errors} PDFs não processados. Veja ingestion.log")
+
+    logger.info(
+        f"Ingestão paralela finalizada | Sucesso={success} | Erros={errors}"
+    )
 
 
-# ================================
-# Função que processa PDFs sequencialmente
-# ================================
+# =============================
+# INGESTÃO SEQUENCIAL
+# =============================
+
 def run_ingestion():
+    logger.info("Ingestão sequencial iniciada")
+
     repo = InvoiceRepository()
-    pdf_files = list(Path(PDF_FOLDER).glob("*.pdf"))
+    pdf_files = list(PDF_FOLDER.glob("*.pdf"))
 
     if not pdf_files:
         print("Nenhum PDF encontrado na pasta.")
+        logger.warning("Nenhum PDF encontrado para ingestão")
         return
 
     success = 0
-    errors = []
+    errors = 0
+
+    from extractor import InvoiceExtractor
+    extractor = InvoiceExtractor()
 
     for pdf_path in pdf_files:
         try:
-            from extractor import InvoiceExtractor
-
-            extractor = InvoiceExtractor()
-
             invoice = extractor.extract_from_pdf(pdf_path)
             repo.add_invoice(invoice)
             success += 1
 
-        except Exception as e:
-            errors.append(f"{pdf_path.name}: {e}")
-            print(f"Erro: {pdf_path.name}: {e}")
+        except Exception:
+            logger.exception(f"Erro ao processar: {pdf_path.name}")
+            errors += 1
 
-    # Grava todas as invoices de uma vez
     repo.flush()
+
     print(f"\n✔ Ingestão finalizada: {success} arquivos processados")
+
     if errors:
-        print(f"⚠ {len(errors)} PDFs não processados devido a erros.\n")
+        print(f"⚠ {errors} PDFs não processados. Veja ingestion.log")
+
+    logger.info(
+        f"Ingestão sequencial finalizada | Sucesso={success} | Erros={errors}"
+    )
 
 
-# ----------------------------
-# Função de analytics console
-# ----------------------------
+# =============================
+# ANALYTICS
+# =============================
+
 def run_analytics():
     try:
         from analytics import InvoiceAnalytics
@@ -107,6 +160,7 @@ def run_analytics():
         analytics = InvoiceAnalytics()
 
         print("\n===== ANALYTICS =====")
+
         print("Média valor das faturas:")
         print(analytics.average_invoice_value())
 
@@ -119,17 +173,31 @@ def run_analytics():
         print("\nLista produtos e preços:")
         print(analytics.product_price_list())
 
-    except Exception as e:
-        print(f"Analytics não executado: {e}")
+        logger.info("Analytics executado com sucesso")
+
+    except Exception:
+        logger.exception("Erro ao executar analytics")
+        print("Analytics não executado. Veja ingestion.log")
 
 
-# ----------------------------
-# Main
-# ----------------------------
+# =============================
+# MAIN
+# =============================
+
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
+
+    start_time = time.time()
+
+    logger.info("=" * 70)
+    logger.info(f"NOVA EXECUÇÃO — {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("=" * 70)
+
+    logger.info("Pipeline iniciado")
 
     if not PDF_FOLDER.exists():
         print("Pasta 'invoices' não encontrada. Baixando dataset...")
+        logger.info("Dataset não encontrado. Iniciando download.")
         download_invoices(PDF_FOLDER)
 
     use_parallel = "--parallel" in sys.argv
@@ -140,3 +208,8 @@ if __name__ == "__main__":
         run_ingestion()
 
     run_analytics()
+
+    elapsed = time.time() - start_time
+
+    print(f"\n⏱ Tempo total: {elapsed:.2f}s")
+    logger.info(f"Pipeline finalizado | Tempo total: {elapsed:.2f}s")
