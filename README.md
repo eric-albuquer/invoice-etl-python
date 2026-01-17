@@ -16,6 +16,11 @@ Baseado no dataset público **[Company Documents Dataset](https://www.kaggle.com
   - Produto mais comprado.
   - Total gasto por produto.
   - Listagem de produtos com nome e preço unitário.
+- **Dashboard Gráfico**: Permite visualizar graficamente os dados:
+  - Top 10 produtos por total gasto.
+  - Distribuição de preços unitários.
+  - Top clientes por faturamento.
+  - Número de faturas por mês.
 - **Processamento Paralelo**: Pode processar múltiplos PDFs simultaneamente usando **multiprocessing** para acelerar a ingestão.
 - **Registro de Log (Logging)**: Todas as execuções do pipeline são registradas em `ingestion.log`, incluindo:
   - Início e fim da execução
@@ -31,14 +36,16 @@ Baseado no dataset público **[Company Documents Dataset](https://www.kaggle.com
 invoice-etl-python/
 │
 ├─ main.py # Script principal, suporta ingestão sequencial ou paralela + analytics
-├─ download_dataset.py # Baixa os PDFs do Kaggle caso a pasta "invoices" não exista
-├─ extractor.py # Extração de dados dos PDFs
-├─ repository.py # Armazena as invoices em JSON, com validação Pydantic
-├─ analytics.py # Consulta e análise dos dados
-├─ models.py # Modelos Pydantic: Invoice e Item
 ├─ invoices/ # Pasta onde os PDFs devem estar
-├─ ingestion.log/ # Armazena os registros de erro e execução
-└─ database.json # Criado automaticamente após ingestão
+├─ ingestion.log # Armazena os registros de erro e execução
+├─ database.json # Criado automaticamente após ingestão
+└─ invoice_etl/
+    ├─ download_dataset.py # Baixa os PDFs do Kaggle caso a pasta "invoices" não exista
+    ├─ extractor.py # Extração de dados dos PDFs
+    ├─ repository.py # Armazena as invoices em JSON, com validação Pydantic
+    ├─ analytics.py # Consulta e análise dos dados
+    ├─ dashboard.py # Visualização gráfica das análises
+    ├─ models.py # Modelos Pydantic: Invoice e Item
 ```
 
 ---
@@ -83,6 +90,21 @@ Este modo utiliza múltiplos processos para acelerar a ingestão de PDFs grandes
 ```bash
 python main.py --parallel
 ```
+
+### 3. Dashboard Gráfico
+Para visualizar o dashboard com gráficos das análises, use a flag --dashboard junto da execução:
+
+```bash
+python main.py --dashboard
+```
+
+Você pode combinar flags, por exemplo:
+
+```bash
+python main.py --parallel --dashboard
+```
+
+Isso processa os PDFs em paralelo e, ao final, exibe o dashboard gráfico.
 
 ## ✅ Regras Importantes
 
