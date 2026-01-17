@@ -16,7 +16,7 @@ Baseado no dataset público **[Company Documents Dataset](https://www.kaggle.com
   - Produto mais comprado.
   - Total gasto por produto.
   - Listagem de produtos com nome e preço unitário.
-- **Dashboard Gráfico**: Permite visualizar graficamente os dados:
+- **Dashboard Gráfico**: Utiliza **matplotlib.pyplot** (biblioteca nativa amplamente utilizada para gráficos em Python) para exibir análises de forma intuitiva, como::
   - Top 10 produtos por total gasto.
   - Distribuição de preços unitários.
   - Top clientes por faturamento.
@@ -110,6 +110,7 @@ Isso processa os PDFs em paralelo e, ao final, exibe o dashboard gráfico.
 
 - Não comitar `database.json` no repositório.
 - Bibliotecas obrigatórias: `pydantic`, `pandas`, `pdfplumber` ou `pypdf`.
+- Adicionalmente, usei `matplotlib.pyplot` apenas para visualização de dados no dashboard.
 - Sistema evita duplicidade de `Order ID`.
 - Código estruturado em **OO**, separando responsabilidades de ingestão e análise.
 
