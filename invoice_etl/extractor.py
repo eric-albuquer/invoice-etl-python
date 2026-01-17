@@ -1,7 +1,7 @@
 import pdfplumber
 import re
 from datetime import datetime
-from models import Invoice, Item
+from invoice_etl.models import Invoice, Item
 
 
 class InvoiceExtractor:

@@ -1,8 +1,8 @@
 from pathlib import Path
-from repository import InvoiceRepository
+from invoice_etl.repository import InvoiceRepository
 from math import ceil
 from multiprocessing import Pool, cpu_count
-from download_dataset import download_invoices
+from invoice_etl.download_dataset import download_invoices
 import sys
 import time
 import logging
@@ -41,7 +41,7 @@ logger.addHandler(handler)
 # =============================
 
 def process_batch(pdf_paths):
-    from extractor import InvoiceExtractor
+    from invoice_etl.extractor import InvoiceExtractor
 
     extractor = InvoiceExtractor()
     invoices = []
@@ -124,7 +124,7 @@ def run_ingestion():
     success = 0
     errors = 0
 
-    from extractor import InvoiceExtractor
+    from invoice_etl.extractor import InvoiceExtractor
     extractor = InvoiceExtractor()
 
     for pdf_path in pdf_files:
@@ -155,7 +155,7 @@ def run_ingestion():
 
 def run_analytics():
     try:
-        from analytics import InvoiceAnalytics
+        from invoice_etl.analytics import InvoiceAnalytics
 
         analytics = InvoiceAnalytics()
 
