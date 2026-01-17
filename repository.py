@@ -1,28 +1,20 @@
 import json
 from pathlib import Path
-from models import Invoice
 
 
 class InvoiceRepository:
-
     def __init__(self, db_path="database.json"):
         self.db_path = Path(db_path)
         self.data = self._load()
+        self._buffer = []
 
     def _load(self):
-
         if not self.db_path.exists():
             return []
-
         try:
             with open(self.db_path, "r", encoding="utf-8") as f:
                 content = f.read().strip()
-
-                if not content:
-                    return []
-
-                return json.loads(content)
-
+                return json.loads(content) if content else []
         except json.JSONDecodeError:
             print("⚠ database.json inválido. Recriando...")
             return []
@@ -34,13 +26,18 @@ class InvoiceRepository:
     def exists(self, order_id: str) -> bool:
         return any(inv["order_id"] == order_id for inv in self.data)
 
-    def add_invoice(self, invoice: Invoice):
-
+    def add_invoice(self, invoice):
         if self.exists(invoice.order_id):
             print(f"⚠ Invoice {invoice.order_id} já existe.")
             return
+        self._buffer.append(invoice.model_dump(mode="json"))
+        print(f"✔ Invoice {invoice.order_id} adicionada ao buffer.")
 
-        self.data.append(invoice.model_dump(mode="json"))
-
+    def flush(self):
+        """Grava todas as invoices do buffer no database.json"""
+        if not self._buffer:
+            return
+        self.data.extend(self._buffer)
         self._save()
-        print(f"✔ Invoice {invoice.order_id} salva.")
+        print(f"✔ {len(self._buffer)} invoices salvas no database.json")
+        self._buffer.clear()

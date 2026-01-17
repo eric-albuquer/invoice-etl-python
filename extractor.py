@@ -11,8 +11,7 @@ class InvoiceExtractor:
         with pdfplumber.open(file_path) as pdf:
 
             full_text = "\n".join(
-                page.extract_text() for page in pdf.pages
-                if page.extract_text()
+                page.extract_text() for page in pdf.pages if page.extract_text()
             )
 
             order_id_match = re.search(r"Order ID[:\s]+(\S+)", full_text)
@@ -62,7 +61,7 @@ class InvoiceExtractor:
                         product_id=row[0],
                         product_name=row[1],
                         quantity=quantity,
-                        unit_price=unit_price
+                        unit_price=unit_price,
                     )
                 )
 
@@ -73,7 +72,7 @@ class InvoiceExtractor:
                 order_id=order_id_match.group(1),
                 customer_id=customer_id_match.group(1),
                 date=invoice_date,
-                items=items
+                items=items,
             )
 
             return invoice
