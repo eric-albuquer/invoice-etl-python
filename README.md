@@ -17,6 +17,11 @@ Baseado no dataset público **[Company Documents Dataset](https://www.kaggle.com
   - Total gasto por produto.
   - Listagem de produtos com nome e preço unitário.
 - **Processamento Paralelo**: Pode processar múltiplos PDFs simultaneamente usando **multiprocessing** para acelerar a ingestão.
+- **Registro de Log (Logging)**: Todas as execuções do pipeline são registradas em `ingestion.log`, incluindo:
+  - Início e fim da execução
+  - Processamento de arquivos com sucesso e erros
+  - Tempo total de execução
+  - PID dos processos para ingestão paralela
 
 ---
 
@@ -32,10 +37,17 @@ invoice-etl-python/
 ├─ analytics.py # Consulta e análise dos dados
 ├─ models.py # Modelos Pydantic: Invoice e Item
 ├─ invoices/ # Pasta onde os PDFs devem estar
+├─ ingestion.log/ # Armazena os registros de erro e execução
 └─ database.json # Criado automaticamente após ingestão
 ```
 
 ---
+
+## ⚙️ Requisitos
+
+Antes de rodar o projeto, certifique-se de que:
+- Python está instalado (testado com 3.12.0 e 3.12.1, pode funcionar em outras versões 3.10+).
+- No Windows, a execução de scripts está habilitada (PowerShell ExecutionPolicy configurado para permitir scripts).
 
 ## ⚙️ Instalação
 
